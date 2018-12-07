@@ -46,7 +46,10 @@ install {
 }
 
 def props = new Properties()
-props.load(project.file('bintray.properties').newDataInputStream())
+def f = project.file('bintray.properties')
+if (f.exists()) {
+    props.load(f.newDataInputStream())
+}
 
 bintray {
     user = props.getProperty("bintray.user")
@@ -62,7 +65,7 @@ bintray {
         licenses = website
         publish = true
         version {
-            name = version
+            name = project.version
         }
     }
 }
