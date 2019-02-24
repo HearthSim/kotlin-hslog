@@ -1,7 +1,5 @@
 package net.hearthsim.kotlin.hslog
 
-import java.util.*
-
 sealed class Tag
 data class SpectatorTag(val spectator: Boolean) : Tag()
 data class BuildNumberTag(val buildNumber: String) : Tag()

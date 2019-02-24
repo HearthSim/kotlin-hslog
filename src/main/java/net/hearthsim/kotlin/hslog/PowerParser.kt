@@ -1,9 +1,6 @@
 package net.hearthsim.kotlin.hslog
 
-import net.hearthsim.kotlin.hslog.LogLine
 import java.util.*
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 /**
  * Created by martin on 10/27/16.
@@ -15,27 +12,27 @@ class PowerParser(
         private val logger: ((String, Array<out String>) -> Unit)?
 ) {
 
-    private val BLOCK_START_PATTERN = Pattern.compile("BLOCK_START BlockType=(.*) Entity=(.*) EffectCardId=(.*) EffectIndex=(.*) Target=(.*) SubOption=(.*)")
-    private val BLOCK_START_CONTINUATION_PATTERN = Pattern.compile("(.*) TriggerKeyword=(.*)")
-    private val BLOCK_END_PATTERN = Pattern.compile("BLOCK_END")
+    private val BLOCK_START_PATTERN = Regex("BLOCK_START BlockType=(.*) Entity=(.*) EffectCardId=(.*) EffectIndex=(.*) Target=(.*) SubOption=(.*)")
+    private val BLOCK_START_CONTINUATION_PATTERN = Regex("(.*) TriggerKeyword=(.*)")
+    private val BLOCK_END_PATTERN = Regex("BLOCK_END")
 
-    private val GameEntityPattern = Pattern.compile("GameEntity EntityID=(.*)")
-    private val PlayerEntityPattern = Pattern.compile("Player EntityID=(.*) PlayerID=(.*) GameAccountId=(.*)")
+    private val GameEntityPattern = Regex("GameEntity EntityID=(.*)")
+    private val PlayerEntityPattern = Regex("Player EntityID=(.*) PlayerID=(.*) GameAccountId=(.*)")
 
-    private val FULL_ENTITY = Pattern.compile("FULL_ENTITY - Creating ID=(.*) CardID=(.*)")
-    private val TAG_CHANGE = Pattern.compile("TAG_CHANGE Entity=(.*) tag=(.*) value=(.*)")
-    private val SHOW_ENTITY = Pattern.compile("SHOW_ENTITY - Updating Entity=(.*) CardID=(.*)")
+    private val FULL_ENTITY = Regex("FULL_ENTITY - Creating ID=(.*) CardID=(.*)")
+    private val TAG_CHANGE = Regex("TAG_CHANGE Entity=(.*) tag=(.*) value=(.*)")
+    private val SHOW_ENTITY = Regex("SHOW_ENTITY - Updating Entity=(.*) CardID=(.*)")
 
-    private val HIDE_ENTITY = Pattern.compile("HIDE_ENTITY - Entity=(.*) tag=(.*) value=(.*)")
-    private val TAG = Pattern.compile("tag=(.*) value=(.*)")
-    private val META_DATA = Pattern.compile("META_DATA - Meta=(.*) Data=(.*) Info=(.*)")
-    private val INFO = Pattern.compile("Info\\[[0-9]*\\] = (.*)")
+    private val HIDE_ENTITY = Regex("HIDE_ENTITY - Entity=(.*) tag=(.*) value=(.*)")
+    private val TAG = Regex("tag=(.*) value=(.*)")
+    private val META_DATA = Regex("META_DATA - Meta=(.*) Data=(.*) Info=(.*)")
+    private val INFO = Regex("Info\\[[0-9]*\\] = (.*)")
 
-    private val BUILD_NUMBER = Pattern.compile("BuildNumber=(.*)")
-    private val GAME_TYPE = Pattern.compile("GameType=(.*)")
-    private val FORMAT_TYPE = Pattern.compile("FormatType=(.*)")
-    private val SCENARIO_ID = Pattern.compile("ScenarioID=(.*)")
-    private val PLAYER_MAPPING = Pattern.compile("PlayerID=(.*), PlayerName=(.*)")
+    private val BUILD_NUMBER = Regex("BuildNumber=(.*)")
+    private val GAME_TYPE = Regex("GameType=(.*)")
+    private val FORMAT_TYPE = Regex("FormatType=(.*)")
+    private val SCENARIO_ID = Regex("ScenarioID=(.*)")
+    private val PLAYER_MAPPING = Regex("PlayerID=(.*), PlayerName=(.*)")
 
     private var rawBuilder: StringBuilder? = null
     private var rawMatchStart: Date? = null
@@ -94,7 +91,7 @@ class PowerParser(
     }
 
     private fun handleDebugPrintPower(line: String) {
-        var m: Matcher
+        var m: MatchResult? = null
         var newTag: Tag? = null
 
         if ("TAG_CHANGE Entity=GameEntity tag=STEP value=FINAL_GAMEOVER" == line) {
@@ -130,53 +127,53 @@ class PowerParser(
                 break@tagLoop
             }
 
-            m = FULL_ENTITY.matcher(line)
-            if (m.matches()) {
+            m = FULL_ENTITY.matchEntire(line)
+            if (m != null) {
                 val tag = FullEntityTag()
-                tag.ID = getEntityIdFromNameOrId(m.group(1))
-                tag.CardID = m.group(2)
+                tag.ID = getEntityIdFromNameOrId(m.groupValues[1])
+                tag.CardID = m.groupValues[2]
 
                 newTag = tag
                 break@tagLoop
             }
 
-            m = TAG_CHANGE.matcher(line)
-            if (m.matches()) {
+            m = TAG_CHANGE.matchEntire(line)
+            if (m != null) {
                 val tag = TagChangeTag()
-                tag.ID = getEntityIdFromNameOrId(m.group(1))
-                tag.tag = m.group(2)
-                tag.value = m.group(3)
+                tag.ID = getEntityIdFromNameOrId(m.groupValues[1])
+                tag.tag = m.groupValues[2]
+                tag.value = m.groupValues[3]
 
                 newTag = tag
                 break@tagLoop
             }
 
-            m = SHOW_ENTITY.matcher(line)
-            if (m.matches()) {
+            m = SHOW_ENTITY.matchEntire(line)
+            if (m != null) {
                 val tag = ShowEntityTag()
-                tag.Entity = getEntityIdFromNameOrId(m.group(1))
-                tag.CardID = m.group(2)
+                tag.Entity = getEntityIdFromNameOrId(m.groupValues[1])
+                tag.CardID = m.groupValues[2]
 
                 newTag = tag
                 break@tagLoop
             }
 
-            m = HIDE_ENTITY.matcher(line)
-            if (m.matches()) {
+            m = HIDE_ENTITY.matchEntire(line)
+            if (m != null) {
                 val tag = HideEntityTag()
-                tag.Entity = getEntityIdFromNameOrId(m.group(1))
-                tag.tag = m.group(2)
-                tag.value = m.group(3)
+                tag.Entity = getEntityIdFromNameOrId(m.groupValues[1])
+                tag.tag = m.groupValues[2]
+                tag.value = m.groupValues[3]
 
                 newTag = tag
                 break@tagLoop
             }
 
-            m = META_DATA.matcher(line)
-            if (m.matches()) {
+            m = META_DATA.matchEntire(line)
+            if (m != null) {
                 val tag = MetaDataTag()
-                tag.Meta = m.group(1)
-                tag.Data = m.group(2)
+                tag.Meta = m.groupValues[1]
+                tag.Data = m.groupValues[2]
 
                 newTag = tag
                 break@tagLoop
@@ -191,24 +188,24 @@ class PowerParser(
             return
         }
 
-        m = BLOCK_START_PATTERN.matcher(line)
-        if (m.matches()) {
-            val m2 = BLOCK_START_CONTINUATION_PATTERN.matcher(m.group(6))
+        m = BLOCK_START_PATTERN.matchEntire(line)
+        if (m != null) {
+            val m2 = BLOCK_START_CONTINUATION_PATTERN.matchEntire(m.groupValues[6])
             val subOption: String?
             val triggerKeyWord: String?
-            if (m2.matches()) {
-                subOption = m2.group(1)
-                triggerKeyWord = m2.group(2)
+            if (m2 != null) {
+                subOption = m2.groupValues[1]
+                triggerKeyWord = m2.groupValues[2]
             } else {
-                subOption = m.group(6)
+                subOption = m.groupValues[6]
                 triggerKeyWord = null
             }
             val tag = BlockTag(
-                    BlockType = m.group(1),
-                    Entity = getEntityIdFromNameOrId(m.group(2)),
-                    EffectCardId = m.group(3),
-                    EffectIndex = m.group(4),
-                    Target = getEntityIdFromNameOrId(m.group(5)),
+                    BlockType = m.groupValues[1],
+                    Entity = getEntityIdFromNameOrId(m.groupValues[2]),
+                    EffectCardId = m.groupValues[3],
+                    EffectIndex = m.groupValues[4],
+                    Target = getEntityIdFromNameOrId(m.groupValues[5]),
                     SubOption = subOption,
                     TriggerKeyword = triggerKeyWord,
                     children = mutableListOf()
@@ -223,8 +220,8 @@ class PowerParser(
             return
         }
 
-        m = BLOCK_END_PATTERN.matcher(line)
-        if (m.matches()) {
+        m = BLOCK_END_PATTERN.matchEntire(line)
+        if (m != null) {
             openNewTag(null)
             if (mBlockTagStack.size > 0) {
                 val blockTag = mBlockTagStack.removeAt(mBlockTagStack.size - 1)
@@ -239,10 +236,10 @@ class PowerParser(
 
 
         contentLoop@ while (true) {
-            m = GameEntityPattern.matcher(line)
-            if (m.matches()) {
+            m = GameEntityPattern.matchEntire(line)
+            if (m != null) {
                 val tag = GameEntityTag()
-                tag.EntityID = getEntityIdFromNameOrId(m.group(1))
+                tag.EntityID = getEntityIdFromNameOrId(m.groupValues[1])
 
                 if (mCurrentTag is CreateGameTag) {
                     (mCurrentTag as CreateGameTag).gameEntity = tag
@@ -250,11 +247,11 @@ class PowerParser(
                 break@contentLoop
             }
 
-            m = PlayerEntityPattern.matcher(line)
-            if (m.matches()) {
+            m = PlayerEntityPattern.matchEntire(line)
+            if (m != null) {
                 val tag = PlayerTag()
-                tag.EntityID = getEntityIdFromNameOrId(m.group(1))
-                tag.PlayerID = m.group(2)
+                tag.EntityID = getEntityIdFromNameOrId(m.groupValues[1])
+                tag.PlayerID = m.groupValues[2]
 
                 if (mCurrentTag is CreateGameTag) {
                     (mCurrentTag as CreateGameTag).playerList.add(tag)
@@ -262,10 +259,10 @@ class PowerParser(
                 break@contentLoop
             }
 
-            m = TAG.matcher(line)
-            if (m.matches()) {
-                val key = m.group(1)
-                val value = m.group(2)
+            m = TAG.matchEntire(line)
+            if (m != null) {
+                val key = m.groupValues[1]
+                val value = m.groupValues[2]
 
                 if (mCurrentTag is CreateGameTag) {
                     if ((mCurrentTag as CreateGameTag).playerList.size > 0) {
@@ -283,10 +280,10 @@ class PowerParser(
                 break@contentLoop
             }
 
-            m = INFO.matcher(line)
-            if (m.matches()) {
+            m = INFO.matchEntire(line)
+            if (m != null) {
                 if (mCurrentTag is MetaDataTag) {
-                    (mCurrentTag as MetaDataTag).Info.add(getEntityIdFromNameOrId(m.group(1))!!)
+                    (mCurrentTag as MetaDataTag).Info.add(getEntityIdFromNameOrId(m.groupValues[1])!!)
                 }
                 break@contentLoop
             }
@@ -296,35 +293,35 @@ class PowerParser(
     }
 
     private fun handleDebugPrintGame(line: String) {
-        var m: Matcher
+        var m: MatchResult?
 
-        m = BUILD_NUMBER.matcher(line)
-        if (m.matches()) {
-            mTagConsumer(BuildNumberTag(m.group(1)))
+        m = BUILD_NUMBER.matchEntire(line)
+        if (m != null) {
+            mTagConsumer(BuildNumberTag(m.groupValues[1]))
             return
         }
 
-        m = GAME_TYPE.matcher(line)
-        if (m.matches()) {
-            mTagConsumer(GameTypeTag(m.group(1)))
+        m = GAME_TYPE.matchEntire(line)
+        if (m != null) {
+            mTagConsumer(GameTypeTag(m.groupValues[1]))
             return
         }
 
-        m = FORMAT_TYPE.matcher(line)
-        if (m.matches()) {
-            mTagConsumer(FormatTypeTag(m.group(1)))
+        m = FORMAT_TYPE.matchEntire(line)
+        if (m != null) {
+            mTagConsumer(FormatTypeTag(m.groupValues[1]))
             return
         }
 
-        m = SCENARIO_ID.matcher(line)
-        if (m.matches()) {
-            mTagConsumer(ScenarioIdTag(m.group(1)))
+        m = SCENARIO_ID.matchEntire(line)
+        if (m != null) {
+            mTagConsumer(ScenarioIdTag(m.groupValues[1]))
             return
         }
 
-        m = PLAYER_MAPPING.matcher(line)
-        if (m.matches()) {
-            mTagConsumer(PlayerMappingTag(m.group(1), m.group(2)))
+        m = PLAYER_MAPPING.matchEntire(line)
+        if (m != null) {
+            mTagConsumer(PlayerMappingTag(m.groupValues[1], m.groupValues[2]))
             return
         }
     }

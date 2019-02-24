@@ -23,32 +23,32 @@ class LogLine(
             return sec
         }
 
-        val PATTERN_WITH_METHOD = Pattern.compile("([^ ]) +([^ ]*) +([^ ]*) +(.*)")
-        val PATTERN =  Pattern.compile("([^ ]) +([^ ]*) +(.*)")
+        val PATTERN_WITH_METHOD = Regex("([^ ]) +([^ ]*) +([^ ]*) +(.*)")
+        val PATTERN =  Regex("([^ ]) +([^ ]*) +(.*)")
 
         fun parseLineWithMethod(line: String, logger: ((String, Array<out String>) -> Unit)?): LogLine? {
 
             //D 19:48:03.8108410 GameState.DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=redacted
 
-            val matcher = PATTERN_WITH_METHOD.matcher(line)
+            val matcher = PATTERN_WITH_METHOD.matchEntire(line)
 
-            if (!matcher.matches()) {
+            if (matcher == null) {
                 logger?.invoke("invalid line: $line", emptyArray())
                 return null
             }
 
-            val level = matcher.group(1)
+            val level = matcher.groupValues[1]
             val seconds: Int
             try {
-                seconds = getSeconds(matcher.group(2))
+                seconds = getSeconds(matcher.groupValues[2])
             } catch (e: NumberFormatException) {
                 logger?.invoke("bad time: $line", emptyArray())
                 return null
             }
 
-            val method = matcher.group(3)
+            val method = matcher.groupValues[3]
 
-            val remaining = matcher.group(4)
+            val remaining = matcher.groupValues[4]
             if (!remaining.startsWith("- ")) {
                 logger?.invoke("missing '-': $line", emptyArray())
                 return null
@@ -65,23 +65,23 @@ class LogLine(
         fun parseLine(line: String): LogLine? {
             //I 21:35:38.5792300 # Deck ID: 1384195626
 
-            val matcher = PATTERN.matcher(line)
+            val matcher = PATTERN.matchEntire(line)
 
-            if (!matcher.matches()) {
+            if (matcher == null) {
                 return null
             }
 
-            val level = matcher.group(1)
+            val level = matcher.groupValues[1]
             val seconds: Int
             try {
-                seconds = getSeconds(matcher.group(2))
+                seconds = getSeconds(matcher.groupValues[2])
             } catch (e: NumberFormatException) {
                 return null
             }
 
             return LogLine(
                     level = level,
-                    line = matcher.group(3),
+                    line = matcher.groupValues[3],
                     seconds = seconds,
                     method = null
             )
