@@ -1,6 +1,6 @@
 package net.hearthsim.kotlin.hslog
 
-import java.util.*
+import com.soywiz.klock.DateTime
 
 /**
  * Created by martin on 10/27/16.
@@ -8,7 +8,7 @@ import java.util.*
 
 class PowerParser(
         private val mTagConsumer: (Tag) -> Unit,
-        private val mRawGameConsumer: ((String, Date) -> Unit)?,
+        private val mRawGameConsumer: ((String, Long) -> Unit)?,
         private val logger: ((String, Array<out String>) -> Unit)?
 ) {
 
@@ -35,7 +35,7 @@ class PowerParser(
     private val PLAYER_MAPPING = Regex("PlayerID=(.*), PlayerName=(.*)")
 
     private var rawBuilder: StringBuilder? = null
-    private var rawMatchStart: Date? = null
+    private var rawMatchStart: Long? = null
     private var rawGoldRewardStateCount: Int = 0
     private val mBlockTagStack = ArrayList<BlockTag>()
     private var mCurrentTag: Tag? = null
@@ -118,7 +118,7 @@ class PowerParser(
                 mBlockTagStack.clear()
 
                 rawBuilder = StringBuilder()
-                rawMatchStart = Date()
+                rawMatchStart = DateTime.now().unixMillisLong
 
                 rawGoldRewardStateCount = 0
 
